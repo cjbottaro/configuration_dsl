@@ -8,11 +8,34 @@ rescue Bundler::BundlerError => e
   exit e.status_code
 end
 require 'test/unit'
-require 'shoulda'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 require 'configuration_dsl'
 
 class Test::Unit::TestCase
+  attr_reader :configuration_module, :object
+  
+  def setup
+    @configuration_module = Module.new do
+      const_set(:DEFAULTS, {
+        :a => nil,
+        :b => :b,
+        :c => "c",
+      })
+
+      def a(v)
+        configuration.a = v
+      end
+
+      def b(v)
+        configuration.b = v
+      end
+
+      def c(v)
+        configuration.c = v
+      end
+    end
+  end
+  
 end
