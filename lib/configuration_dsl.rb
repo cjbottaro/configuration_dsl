@@ -5,6 +5,8 @@ module ConfigurationDsl
   
   class Error < RuntimeError; end
   
+  VERSION = File.read(File.dirname(__FILE__)+"/../VERSION")
+  
   def configure_with(configuration_module, &block)
     helper = Helper.new(self)
     settings = helper.initialize_settings
