@@ -15,8 +15,8 @@ Jeweler::Tasks.new do |gem|
   gem.name = "configuration_dsl"
   gem.homepage = "http://github.com/cjbottaro/configuration_dsl"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{Configure classes and objects using a DSL.}
+  gem.description = %Q{Easily configure a class (or object) with a DSL.}
   gem.email = "cjbottaro@alumni.cs.utexas.edu"
   gem.authors = ["Christopher J Bottaro"]
   # Include your dependencies below. Runtime dependencies are required when using your gem,

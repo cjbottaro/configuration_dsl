@@ -48,6 +48,24 @@ class TestConfigurationDsl < Test::Unit::TestCase
     assert_equal "c",   klass.configuration.c
   end
   
+  def test_deep_inheritance
+    
+    # Obscure bug where the base class extends ConfigurationDsl and calls
+    # configure_with, but never configure.  Then a class inherits and does
+    # call configure.
+    
+    klass = Class.new
+    klass.extend ConfigurationDsl
+    klass.configure_with(configuration_module)
+    
+    derived = Class.new(klass)
+    derived.configure do
+      c :sea
+    end
+    
+    assert_equal :sea, derived.configuration.c
+  end
+  
   def test_override_inheritance
     klass = Class.new
     klass.extend ConfigurationDsl

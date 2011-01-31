@@ -10,7 +10,7 @@ module ConfigurationDsl
     settings = helper.initialize_settings
     settings[:module] = configuration_module
     settings[:callback] = block if block_given?
-    @configuration = nil
+    @configuration = helper.default_configuration
   end
   
   def configure(&block)
@@ -27,14 +27,7 @@ module ConfigurationDsl
   end
   
   def configuration
-    @configuration ||= begin
-      helper = Helper.new(self)
-      if helper.has_settings?
-        helper.default_configuration
-      else
-        helper.inherit_configuration
-      end
-    end
+    @configuration ||= Helper.new(self).inherit_configuration
   end
   
 end
