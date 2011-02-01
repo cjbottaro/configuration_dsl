@@ -39,7 +39,13 @@ module ConfigurationDsl
       struct = configuration
       struct and begin
         members = struct.members.collect{ |member| member.to_sym }
-        values  = struct.values.collect{ |value| value.dup rescue value }
+        values  = struct.values.collect do |value|
+          if value.kind_of?(Class)
+            value
+          else
+            value.dup rescue value
+          end
+        end
         Struct.new(*members).new(*values)
       end
     end

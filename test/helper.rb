@@ -21,7 +21,7 @@ class Test::Unit::TestCase
       const_set(:DEFAULTS, {
         :a => nil,
         :b => :b,
-        :c => "c",
+        :c => "c"
       })
 
       def a(v)

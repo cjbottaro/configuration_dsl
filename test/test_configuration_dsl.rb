@@ -66,6 +66,20 @@ class TestConfigurationDsl < Test::Unit::TestCase
     assert_equal :sea, derived.configuration.c
   end
   
+  def test_inherit_does_not_dup_classes
+    base = Class.new
+    base.extend ConfigurationDsl
+    base.configure_with(configuration_module)
+    
+    require "timeout"
+    base.configure do
+      a Timeout::Error
+    end
+    
+    derived = Class.new(base)
+    assert_equal Timeout::Error, derived.configuration.a
+  end
+  
   def test_override_inheritance
     klass = Class.new
     klass.extend ConfigurationDsl
