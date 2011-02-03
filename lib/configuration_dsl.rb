@@ -12,6 +12,18 @@ module ConfigurationDsl
     @configuration_dsl.module = configuration_module
     @configuration_dsl.callback = block if block_given?
     @configuration_dsl.default_configuration!
+    
+    # Automatically define setters.
+    @configuration_dsl.module.module_eval do
+      self::DEFAULTS.keys.each do |name|
+        next if method_defined?(name) # Don't override custom setters.
+        module_eval <<-code
+          def #{name}(value)
+            configuration.#{name} = value
+          end
+        code
+      end
+    end
   end
   
   def configure(&block)

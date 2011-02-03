@@ -2,7 +2,7 @@ require 'helper'
 
 class TestConfigurationDsl < Test::Unit::TestCase
   
-  def impl_configure
+  def both_configure
     object.extend(ConfigurationDsl)
     object.configure_with(configuration_module)
     assert_equal nil, object.configuration.a
@@ -15,7 +15,7 @@ class TestConfigurationDsl < Test::Unit::TestCase
     assert_equal "c", object.configuration.c
   end
   
-  def impl_callback
+  def both_callback
     object.extend(ConfigurationDsl)
     object.configure_with(configuration_module){ @something = "blahtest" }
     object.configure
@@ -123,9 +123,22 @@ class TestConfigurationDsl < Test::Unit::TestCase
     assert_raises(RuntimeError){ object.configuration.b = "something" }
   end
   
+  def both_auto_setters
+    object.extend ConfigurationDsl
+    object.configure_with(auto_module)
+    object.configure do
+      a "aye"
+      b "bee"
+      c "sea"
+    end
+    assert_equal "aye", object.configuration.a
+    assert_equal "bee", object.configuration.b
+    assert_equal "c:sea", object.configuration.c # Custom setters.
+  end
+  
   instance_methods.each do |method_name|
-    if method_name.to_s =~ /^impl_/
-      base_name = method_name.to_s.sub(/^impl_/, "")
+    if method_name.to_s =~ /^both_/
+      base_name = method_name.to_s.sub(/^both_/, "")
       class_eval <<-code
         def test_object_#{base_name}
           @object = Object.new
