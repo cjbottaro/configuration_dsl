@@ -48,9 +48,7 @@ module ConfigurationDsl
     end
     
     def default_configuration!
-      @configuration = default_configuration
-      @configuration.freeze
-      @configuration
+      @configuration = default_configuration.freeze
     end
     
     def ancestors
