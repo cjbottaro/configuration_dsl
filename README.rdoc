@@ -1,6 +1,101 @@
 = configuration_dsl
 
-Description goes here.
+Easily configure classes and objects using a DSL.
+
+== Description
+
+configuration_dsl encapsulates the pattern of using a DSL to "configure" objects and/or classes:
+
+  class MyAwesomeClass
+    ... some setup code here ...
+    configure do
+      greeting "Hello!"
+      count 5
+    end
+  end
+
+  MyAwesomeClass.configuration.greeting
+  # => "Hello!"
+
+  MyAwesomeClass.configuration.count
+  # => 5
+
+== Usage
+
+Bet you're wondering what goes in that "some setup code here" placeholder.  It's nothing too complicated.  Here's a complete example.
+
+  module Configuration
+    DEFAULTS = {
+      :greeting => "Hi.",
+      :count => 1
+    }
+  
+    def greeting(value)
+      configuration.greeting = value
+    end
+  
+    def count(value)
+      configuration.count = value
+    end
+  end
+
+  require "configuration_dsl"
+  
+  class MyAwesomeClass
+    extend ConfigurationDsl
+    configure_with(Configuration)
+    configure do
+      greeting "Hello!"
+    end
+  end
+
+  MyAwesomeClass.configuration.greeting
+  # => "Hello!"
+
+  MyAwesomeClass.configuration.count
+  # => 1
+
+The basic idea is that you define a module with your configuration options.  The module must contain a constant called DEFAULTS that has the configuration option names and their default values.  Then you must define setters for each of the options.  Note, in the next release, configuration_dsl will automatically generate setters for you.
+
+== Why a module?
+
+Why are the configuration options and setters stored in a module?  It makes for pretty documentation.  Just rdoc your configuration module (the setter methods you define) and you have a single place that documents all the configuration options for your object or class.
+
+== Working with objects
+
+configuration_dsl works with plain objects (in addition to classes).  Given the module Configuration from our previous examples:
+
+  foo = Foo.new
+  foo.extend(ConfigurationDsl)
+  foo.configure_with(Configuration)
+  foo.configure do
+    greeting "What up?"
+    count 2
+  end
+  foo.configuration.greeting
+  # => "What up?"
+  foo.configuration.count
+  # => 2
+
+== Working with classes
+
+If you use configuration_dsl with classes, then derived classes should inherit the configuration in a sane and predictable way.
+
+== Complex setters
+
+You can have a single setter for multiple configuration options.
+
+  module Configuration
+    DEFAULTS = {
+      :frequence => 0,
+      :callback => nil
+    }
+  
+    def set_callback(f, &block)
+      configuration.frequence = f
+      configuration.callback = block
+    end
+  end
 
 == Contributing to configuration_dsl
  
@@ -14,6 +109,5 @@ Description goes here.
 
 == Copyright
 
-Copyright (c) 2011 Christopher J Bottaro. See LICENSE.txt for
-further details.
+Copyright (c) 2011 Christopher J Bottaro. See LICENSE.txt for further details.
 
