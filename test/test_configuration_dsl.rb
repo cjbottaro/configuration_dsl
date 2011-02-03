@@ -110,6 +110,19 @@ class TestConfigurationDsl < Test::Unit::TestCase
     assert_equal "z", derived.configuration.z
   end
   
+  def test_frozen_configuration
+    object = Object.new
+    object.extend ConfigurationDsl
+    object.configure_with(configuration_module)
+    assert_equal :b, object.configuration.b
+    assert_raises(RuntimeError){ object.configuration.b = "something" }
+    object.configure do
+      b "bee"
+    end
+    assert_equal "bee", object.configuration.b
+    assert_raises(RuntimeError){ object.configuration.b = "something" }
+  end
+  
   instance_methods.each do |method_name|
     if method_name.to_s =~ /^impl_/
       base_name = method_name.to_s.sub(/^impl_/, "")

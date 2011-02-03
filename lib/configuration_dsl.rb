@@ -21,9 +21,10 @@ module ConfigurationDsl
     if block_given?
       _module = @configuration_dsl.find_module
       raise Error, "cannot find configuration module" unless _module
-      dsl = Dsl.new(configuration)
+      dsl = Dsl.new(Impl.dup_struct(configuration))
       dsl.send(:extend, _module)
       dsl.instance_eval(&block)
+      @configuration_dsl.configuration = dsl.configuration.freeze
     end
     
     # Run the callback.
@@ -33,7 +34,7 @@ module ConfigurationDsl
   
   def configuration
     @configuration_dsl ||= Impl.new(self)
-    @configuration_dsl.configuration ||= @configuration_dsl.inherit_configuration
+    @configuration_dsl.find_configuration
   end
   
 end

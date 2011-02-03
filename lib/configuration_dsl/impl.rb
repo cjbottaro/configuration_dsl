@@ -49,11 +49,8 @@ module ConfigurationDsl
     
     def default_configuration!
       @configuration = default_configuration
-    end
-    
-    def inherit_configuration
-      configuration = find_configuration
-      configuration and Impl.dup_struct(configuration)
+      @configuration.freeze
+      @configuration
     end
     
     def ancestors
