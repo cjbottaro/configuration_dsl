@@ -36,12 +36,15 @@ module ConfigurationDsl
       dsl = Dsl.new(Impl.dup_struct(configuration)) # Dup it to unfreeze it.
       dsl.send(:extend, _module)
       dsl.instance_eval(&block)
-      @configuration_dsl.configuration = dsl.configuration.freeze
+      @configuration_dsl.configuration = dsl.configuration
     end
     
     # Run the callback.
     callback = @configuration_dsl.find_callback
     instance_eval(&callback) if callback
+    
+    # Freeze the configuration.
+    @configuration_dsl.configuration.freeze
   end
   
   def configuration
