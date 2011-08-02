@@ -20,9 +20,6 @@ class LazyEvalTester
       s
     end
   }
-  configure do
-    name{ self.name }
-  end
 end
 
 class Test::Unit::TestCase

@@ -1,4 +1,7 @@
 module ConfigurationDsl
+
+  # Since we allow access to values via object-member notation, we prefix our own methods with __
+  # (double underscore) to avoid conflicts.
   class Configuration
 
     def initialize(_module)
@@ -13,8 +16,9 @@ module ConfigurationDsl
 
     def dup
       copy = Configuration.new(@module)
-      copy.instance_variable_set("@actualizer", @actualizer)
-      copy.instance_variable_set("@specs", @specs.dup)
+      specs = @specs.inject({}){ |memo, (k, v)| memo[k] = v.dup; memo }
+      specs.each{ |name, spec| spec[:evaled] = false } # So derived classes can re-eval blocks.
+      copy.instance_variable_set("@specs", specs)
       copy
     end
 

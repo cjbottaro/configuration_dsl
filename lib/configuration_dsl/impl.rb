@@ -43,7 +43,7 @@ module ConfigurationDsl
 
     def define_storage(object)
       singleton_class(object).send(:define_method, storage) do |&block|
-        @configuration_dsl.configuration.__bind(object)
+        @configuration_dsl.configuration.__bind(self)
       end
     end
 

@@ -115,6 +115,7 @@ class TestConfigurationDsl < Test::Unit::TestCase
 
   # See definition for LazyEvalTester in test/helper.rb.
   def test_lazy_eval
+    LazyEvalTester.configure{ name{ self.name } }
     assert_equal "LazyEvalTester", LazyEvalTester.configuration.name
   end
   
@@ -168,6 +169,32 @@ class TestConfigurationDsl < Test::Unit::TestCase
 
     assert_equal Timeout::Error, base.configuration.timeout
     assert_equal Timeout::Error, derived.configuration.timeout
+  end
+
+  # When we inherit, we want to reset all our evaled values.
+  def test_inherit_resets_evaled_values
+    base = Class.new do
+      extend ConfigurationDsl
+      configure_with Module.new {
+        def name(s)
+          s
+        end
+      }
+      configure{ name{ self.name } }
+      def self.name
+        "BaseClass"
+      end
+    end
+
+    assert_equal "BaseClass", base.configuration.name
+
+    derived = Class.new(base) do
+      def self.name
+        "DerivedClass"
+      end
+    end
+
+    assert_equal "DerivedClass", derived.configuration.name
   end
   
   # Make sure that if we call configure_with in a derived class, that it overrides
