@@ -24,20 +24,24 @@ configuration_dsl encapsulates the pattern of using a DSL to "configure" objects
 
 Bet you're wondering what goes in that "some setup code here" placeholder.  It's nothing too complicated.  Here's a complete example.
 
-  module Configuration
-    DEFAULTS = {
-      :greeting => "Hi.",
-      :count => 1
-    }
+  module MyConfiguration
+    def greeting(s)
+      s
+    end
+
+    def count(n)
+      n
+    end
   end
 
   require "configuration_dsl"
   
   class MyAwesomeClass
     extend ConfigurationDsl
-    configure_with(Configuration)
+    configure_with(MyConfiguration)
     configure do
       greeting "Hello!"
+      count 1
     end
   end
 
@@ -47,39 +51,55 @@ Bet you're wondering what goes in that "some setup code here" placeholder.  It's
   MyAwesomeClass.configuration.count
   # => 1
 
-The basic idea is that you define a module with your configuration options.  The module must contain a constant called DEFAULTS that has the configuration option names and their default values.  You can then optionally define setter methods for each configuration option (more on that later), or just use the ones that are automatically created for you.
+The basic idea is that you define a module with your configuration options, then you configure your class/object with it.
 
 == Why a module?
 
-Why are the configuration options stored in a module?  It makes for pretty documentation.  Instead of using the automatically generated setters, you can write (and document!) your own.
+Why are the configuration options stored in a module?  It makes for pretty documentation!  Just run rdoc on your configuration module.
 
-  module Configuration
-    DEFAULTS = {
-      :greeting => "Hi.",
-      :count => 1
+== Default values, lazily evaluated values and modified values.
+
+Default values are supported in an intuative way.  If you specify a block for a value, then it is lazily evaluated when try to access the value for the first time.
+
+  class MyClass
+    extend ConfigurationDsl
+    configure_with Module.new {
+      def name(s = "Christopher")
+        s
+      end
+      def time(t)
+        t
+      end
+      def age(n)
+        n - 1
+      end
+      def callback(proc)
+        proc
+      end
     }
-  
-    # Set the phrase used to greet someone.
-    def greeting(phrase)
-      configuration.greeting = value
-    end
-  
-    # How many times to greet someone. +n+ must be greater than zero.
-    def count(n)
-      raise ArgumentError, "count must be greater than zero" if n <= 0
-      configuration.count = n
+    configure do
+      puts Time.now # => 2011-08-02 01:11:50 -0400
+      time{ Time.now }
+      age 31
+      greeter Proc.new{ |name| "Hello, #{name}" }
     end
   end
+  
+  sleep(2)
+  MyClass.configuration.time                  # => 2011-08-02 01:11:52 -0400
+  MyClass.configuration.age                   # => 30
+  MyClass.configuration.name                  # => "Christopher"
+  MyClass.configuration.greeter.call("Chris") # => "Hello, Chris"
 
-Just run rdoc on that module and you have all your configuration options documented in one easy to link to place.
+Make sense?
 
 == Working with objects
 
-configuration_dsl works with plain objects (in addition to classes).  Given the module Configuration from our previous examples:
+configuration_dsl works with plain objects (in addition to classes).  Given the module MyConfiguration from our previous examples:
 
   foo = Foo.new
   foo.extend(ConfigurationDsl)
-  foo.configure_with(Configuration)
+  foo.configure_with(MyConfiguration)
   foo.configure do
     greeting "What up?"
     count 2
@@ -92,22 +112,6 @@ configuration_dsl works with plain objects (in addition to classes).  Given the 
 == Working with classes
 
 If you use configuration_dsl with classes, then derived classes should inherit the configuration in a sane and predictable way.
-
-== Complex setters
-
-You can have a single setter for multiple configuration options.
-
-  module Configuration
-    DEFAULTS = {
-      :frequence => 0,
-      :callback => nil
-    }
-  
-    def set_callback(f, &block)
-      configuration.frequence = f
-      configuration.callback = block
-    end
-  end
 
 == Callback
 
@@ -133,6 +137,22 @@ You can set a callback to be called after each time +configure+ is called.  Just
   # => 2
 
 This is useful if you need to run some kind of initialization code after your class or object has been configured.
+
+== Configuring the +configure+ and +configuration+ methods
+
+You can use different methods for #configure and #configuration.
+
+  class MyClass
+    extend ConfigurationDsl
+    configure_with(SomeModule, :method => :setup, :storage => :settings)
+    setup do
+      setting1 "blah"
+      setting2 "bleh"
+    end
+  end
+
+  MyClass.settings.setting1 # => "blah"
+  MyClass.settings.setting2 # => "bleh"
 
 == Contributing to configuration_dsl
  

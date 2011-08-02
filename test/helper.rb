@@ -14,39 +14,5 @@ $LOAD_PATH.unshift(File.dirname(__FILE__))
 require 'configuration_dsl'
 
 class Test::Unit::TestCase
-  attr_reader :configuration_module, :auto_module, :object
-  
-  def setup
-    @configuration_module = Module.new do
-      const_set(:DEFAULTS, {
-        :a => nil,
-        :b => :b,
-        :c => "c"
-      })
-
-      def a(v)
-        configuration.a = v
-      end
-
-      def b(v)
-        configuration.b = v
-      end
-
-      def c(v)
-        configuration.c = v
-      end
-    end
-    
-    @auto_module = Module.new do
-      const_set(:DEFAULTS, {
-        :a => nil,
-        :b => :b,
-        :c => "c"
-      })
-      def c(v)
-        configuration.c = "c:#{v}"
-      end
-    end
-  end
-  
+  attr_reader :object
 end

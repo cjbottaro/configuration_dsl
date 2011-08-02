@@ -2,138 +2,212 @@ require 'helper'
 
 class TestConfigurationDsl < Test::Unit::TestCase
   
-  def both_configure
+  def both_configure_with
+    configuration_module = Module.new do
+      def name(value = "chris")
+        value.to_s
+      end
+
+      def age(value)
+        value.to_i
+      end
+    end
     object.extend(ConfigurationDsl)
     object.configure_with(configuration_module)
-    assert_equal nil, object.configuration.a
-    assert_equal :b,  object.configuration.b
-    assert_equal "c", object.configuration.c
-    
-    object.configure{ a("a") }
-    assert_equal "a", object.configuration.a
-    assert_equal :b,  object.configuration.b
-    assert_equal "c", object.configuration.c
+    assert_equal "chris", object.configuration.name
+    assert_raise(ArgumentError){ object.configuration.age }
+  end
+
+  def both_configure
+    configuration_module = Module.new do
+      def name(value = "chris")
+        value.to_s
+      end
+
+      def age(value)
+        value.to_i
+      end
+    end
+    object.extend(ConfigurationDsl)
+    object.configure_with(configuration_module)
+    object.configure do
+      age "31"
+    end
+    assert_equal "chris", object.configuration.name
+    assert_equal 31, object.configuration.age
+  end
+
+  def both_configure_block_value
+    object.extend(ConfigurationDsl)
+    object.configure_with Module.new {
+      def name(string); string; end
+    }
+    object.configure{ name{ "chris" } }
+    assert_equal "chris", object.configuration.name
+  end
+
+  def both_configure_reset
+    object.extend(ConfigurationDsl)
+    object.configure_with Module.new {
+      def name(string = nil); string; end
+      def age(number = nil); number; end
+    }
+    assert_equal nil, object.configuration.name
+    assert_equal nil, object.configuration.age
+
+    object.configure{ name "chris" }
+    assert_equal "chris", object.configuration.name
+    assert_equal nil, object.configuration.age
+
+    object.configure{ age 31 }
+    assert_equal "chris", object.configuration.name
+    assert_equal 31, object.configuration.age
+
+    object.configure(:reset => true){ age 30 }
+    assert_equal nil, object.configuration.name
+    assert_equal 30, object.configuration.age
+  end
+
+  def both_custom_method
+    configuration_module = Module.new do
+      def name(value = "chris")
+        value.to_s
+      end
+
+      def age(value)
+        value.to_i
+      end
+    end
+    object.extend(ConfigurationDsl)
+    object.configure_with(configuration_module, :method => :something)
+    object.something do
+      age "31"
+    end
+    assert_equal "chris", object.configuration.name
+    assert_equal 31, object.configuration.age
+  end
+
+  def both_custom_storage
+    configuration_module = Module.new do
+      def name(value = "chris")
+        value.to_s
+      end
+
+      def age(value)
+        value.to_i
+      end
+    end
+    object.extend(ConfigurationDsl)
+    object.configure_with(configuration_module, :storage => :something)
+    object.configure do
+      age "31"
+    end
+    assert_equal "chris", object.something.name
+    assert_equal 31, object.something.age
   end
   
   def both_callback
     object.extend(ConfigurationDsl)
-    object.configure_with(configuration_module){ @something = "blahtest" }
+    object.configure_with(Module.new){ @something = "blahtest" }
     object.configure
     assert_equal "blahtest", object.instance_variable_get(:@something)
   end
   
   def test_inheritance
+    configuration_module = Module.new do
+      def name(value = "chris")
+        value.to_s
+      end
+
+      def age(value)
+        value.to_i
+      end
+    end
     klass = Class.new
-    klass.extend ConfigurationDsl
+    klass.extend(ConfigurationDsl)
     klass.configure_with(configuration_module)
     klass.configure do
-      b "bee"
+      name "christopher"
+      age 31
     end
     
     derived = Class.new(klass)
-    assert_equal nil,   derived.configuration.a
-    assert_equal "bee", derived.configuration.b
-    assert_equal "c",   derived.configuration.c
+    assert_equal "christopher",   derived.configuration.name
+    assert_equal 31,              derived.configuration.age
     
     derived.configure do
-      c :sea
+      age 30
     end
-    assert_equal nil,   derived.configuration.a
-    assert_equal "bee", derived.configuration.b
-    assert_equal :sea,  derived.configuration.c
+    assert_equal "christopher",   derived.configuration.name
+    assert_equal 30,              derived.configuration.age
     
     # Make sure the inherited class's configuration didn't change.
-    assert_equal nil,   klass.configuration.a
-    assert_equal "bee", klass.configuration.b
-    assert_equal "c",   klass.configuration.c
-  end
-  
-  def test_deep_inheritance
-    
-    # Obscure bug where the base class extends ConfigurationDsl and calls
-    # configure_with, but never configure.  Then a class inherits and does
-    # call configure.
-    
-    klass = Class.new
-    klass.extend ConfigurationDsl
-    klass.configure_with(configuration_module)
-    
-    derived = Class.new(klass)
-    derived.configure do
-      c :sea
-    end
-    
-    assert_equal :sea, derived.configuration.c
+    assert_equal "christopher",   klass.configuration.name
+    assert_equal 31,              klass.configuration.age
   end
   
   def test_inherit_does_not_dup_classes
     base = Class.new
     base.extend ConfigurationDsl
-    base.configure_with(configuration_module)
+    base.configure_with Module.new {
+      def timeout(value)
+        value
+      end
+    }
     
     require "timeout"
     base.configure do
-      a Timeout::Error
+      timeout Timeout::Error
     end
-    
     derived = Class.new(base)
-    assert_equal Timeout::Error, derived.configuration.a
+
+    assert_equal Timeout::Error, base.configuration.timeout
+    assert_equal Timeout::Error, derived.configuration.timeout
   end
   
-  def test_override_inheritance
+  # Make sure that if we call configure_with in a derived class, that it overrides
+  # what was done when the parent called configure_with.
+  def test_configure_with_in_derived
+    
     klass = Class.new
     klass.extend ConfigurationDsl
-    klass.configure_with(configuration_module)
+    klass.configure_with Module.new {
+      def name(value = "chris")
+        value.to_s
+      end
+      def age(value)
+        value.to_i
+      end
+    }
     klass.configure do
-      b "bee"
+      age 31
     end
     
     derived = Class.new(klass)
-    assert_equal nil,   derived.configuration.a
-    assert_equal "bee", derived.configuration.b
-    assert_equal "c",   derived.configuration.c
+    assert_equal "chris", derived.configuration.name
+    assert_equal 31,      derived.configuration.age
     
-    new_module = Module.new do
-      const_set(:DEFAULTS, {
-        :x => "x",
-        :y => "y",
-        :z => "z"
-      })
-      def x(v); configuration.x = v; end
-      def y(v); configuration.y = v; end
-      def z(v); configuration.z = v; end
+    derived.configure_with Module.new {
+      def birthday(date)
+        date
+      end
+      def gender(v)
+        v
+      end
+    }
+    derived.configure do
+      birthday "03/11/1980"
+      gender "male"
     end
-    
-    derived.configure_with(new_module)
-    assert_equal "x", derived.configuration.x
-    assert_equal "y", derived.configuration.y
-    assert_equal "z", derived.configuration.z
-  end
-  
-  def test_frozen_configuration
-    object = Object.new
-    object.extend ConfigurationDsl
-    object.configure_with(configuration_module)
-    assert_equal :b, object.configuration.b
-    assert_raises(RuntimeError){ object.configuration.b = "something" }
-    object.configure do
-      b "bee"
-    end
-    assert_equal "bee", object.configuration.b
-    assert_raises(RuntimeError){ object.configuration.b = "something" }
-  end
-  
-  def both_auto_setters
-    object.extend ConfigurationDsl
-    object.configure_with(auto_module)
-    object.configure do
-      a "aye"
-      b "bee"
-      c "sea"
-    end
-    assert_equal "aye", object.configuration.a
-    assert_equal "bee", object.configuration.b
-    assert_equal "c:sea", object.configuration.c # Custom setters.
+
+    assert_raise(NoMethodError){ derived.configuration.name }
+    assert_raise(NoMethodError){ derived.configuration.age }
+    assert_equal "03/11/1980", derived.configuration.birthday
+    assert_equal "male", derived.configuration.gender
+
+    # Make sure nothing happened to our base class.
+    assert_equal "chris", klass.configuration.name
+    assert_equal 31,      klass.configuration.age
   end
   
   instance_methods.each do |method_name|

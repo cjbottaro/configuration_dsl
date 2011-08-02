@@ -6,50 +6,26 @@ module ConfigurationDsl
   class Error < RuntimeError; end
   
   VERSION = File.read(File.dirname(__FILE__)+"/../VERSION")
-  
-  def configure_with(configuration_module, &block)
-    @configuration_dsl ||= Impl.new(self)
-    @configuration_dsl.module = configuration_module
-    @configuration_dsl.callback = block if block_given?
-    @configuration_dsl.default_configuration!
-    
-    # Automatically define setters.
-    @configuration_dsl.module.module_eval do
-      self::DEFAULTS.keys.each do |name|
-        next if method_defined?(name) # Don't override custom setters.
-        module_eval <<-code
-          def #{name}(value)
-            configuration.#{name} = value
+
+  def configure_with(mod, options = {}, &block)
+    @configuration_dsl = Impl.new(mod, options, &block)
+    @configuration_dsl.define_method(self)    
+    @configuration_dsl.define_storage(self)
+  end
+
+  def self.extended(object)
+    if object.instance_of?(Class)
+      (class << object; self; end).class_eval do
+        def inherited_with_configuration_dsl(derived)
+          if (configuration_dsl = instance_variable_get("@configuration_dsl"))
+            derived.instance_variable_set("@configuration_dsl", configuration_dsl.dup)
           end
-        code
+          inherited_without_configuration_dsl(derived)
+        end
+        alias_method :inherited_without_configuration_dsl, :inherited
+        alias_method :inherited, :inherited_with_configuration_dsl
       end
     end
-  end
-  
-  def configure(&block)
-    @configuration_dsl ||= Impl.new(self)
-    
-    # Instance eval the block.
-    if block_given?
-      _module = @configuration_dsl.find_module
-      raise Error, "cannot find configuration module" unless _module
-      dsl = Dsl.new(Impl.dup_struct(configuration)) # Dup it to unfreeze it.
-      dsl.send(:extend, _module)
-      dsl.instance_eval(&block)
-      @configuration_dsl.configuration = dsl.configuration
-    end
-    
-    # Run the callback.
-    callback = @configuration_dsl.find_callback
-    instance_eval(&callback) if callback
-    
-    # Freeze the configuration.
-    @configuration_dsl.configuration.freeze
-  end
-  
-  def configuration
-    @configuration_dsl ||= Impl.new(self)
-    @configuration_dsl.find_configuration
   end
   
 end
