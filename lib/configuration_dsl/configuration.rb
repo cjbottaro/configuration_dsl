@@ -18,6 +18,11 @@ module ConfigurationDsl
       copy
     end
 
+    def __bind(object)
+      @object = object
+      self
+    end
+
     def __set(name, args, block)
       @specs[name.to_sym] = { :block => block, :args => args, :evaled => false }
     end
@@ -27,7 +32,7 @@ module ConfigurationDsl
       return spec[:value] if spec[:evaled]
 
       if (block = spec[:block])
-        spec[:value] = @actualizer.send(name, block.call)
+        spec[:value] = @actualizer.send(name, @object.instance_eval(&block))
       else
         spec[:value] = @actualizer.send(name, *spec[:args])
       end

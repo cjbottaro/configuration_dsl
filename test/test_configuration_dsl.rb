@@ -112,6 +112,11 @@ class TestConfigurationDsl < Test::Unit::TestCase
     object.configure
     assert_equal "blahtest", object.instance_variable_get(:@something)
   end
+
+  # See definition for LazyEvalTester in test/helper.rb.
+  def test_lazy_eval
+    assert_equal "LazyEvalTester", LazyEvalTester.configuration.name
+  end
   
   def test_inheritance
     configuration_module = Module.new do
