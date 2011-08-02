@@ -5,7 +5,7 @@ module ConfigurationDsl
   
   class Error < RuntimeError; end
   
-  VERSION = File.read(File.dirname(__FILE__)+"/../VERSION")
+  VERSION = File.read(File.dirname(__FILE__)+"/../VERSION").chomp
 
   def configure_with(mod, options = {}, &block)
     @configuration_dsl = Impl.new(mod, options, &block)
