@@ -9,15 +9,18 @@ module ConfigurationDsl
       @actualizer = Object.new
       @actualizer.extend(@module)
       @specs = @module.instance_methods.inject({}) do |memo, name|
-        memo[name] = { :block => nil, :args => [], :evaled => false }
+        memo[name] = []
         memo
       end
     end
 
     def dup
       copy = Configuration.new(@module)
-      specs = @specs.inject({}){ |memo, (k, v)| memo[k] = v.dup; memo }
-      specs.each{ |name, spec| spec[:evaled] = false } # So derived classes can re-eval blocks.
+      specs = @specs.inject({}) do |memo, (name, array)|
+        memo[name] = array.collect{ |hash| hash.dup }
+        memo
+      end
+      specs.each{ |name, ar| ar.each{ |spec| spec[:evaled] = false } } # So derived classes can re-eval blocks.
       copy.instance_variable_set("@specs", specs)
       copy
     end
@@ -28,21 +31,27 @@ module ConfigurationDsl
     end
 
     def __set(name, args, block)
-      @specs[name.to_sym] = { :block => block, :args => args, :evaled => false }
+      @specs[name.to_sym] << { :block => block, :args => args, :evaled => false }
     end
 
     def __eval(name)
-      spec = @specs[name]
-      return spec[:value] if spec[:evaled]
+      specs = @specs[name]
 
-      if (block = spec[:block])
-        spec[:value] = @actualizer.send(name, @object.instance_eval(&block))
-      else
-        spec[:value] = @actualizer.send(name, *spec[:args])
+      # Maybe it has a default value?
+      return @actualizer.send(name) if specs.empty?
+
+      specs.each do |spec|
+        if not spec[:evaled]
+          if (block = spec[:block])
+            spec[:value] = @actualizer.send(name, @object.instance_eval(&block))
+          else
+            spec[:value] = @actualizer.send(name, *spec[:args])
+          end
+          spec[:evaled] = true
+        end
       end
-      spec[:evaled] = true
 
-      spec[:value]
+      specs.last[:value]
     end
 
     def method_missing(name, *args, &block)
