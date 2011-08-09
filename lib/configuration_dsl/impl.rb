@@ -35,16 +35,19 @@ module ConfigurationDsl
     end
 
     def define_method(object)
-      singleton_class(object).send(:define_method, method) do |*args, &block|
-        options = args.length == 1 && args.first.kind_of?(Hash) ? args.pop : {}
-        @configuration_dsl.configure(object, options, &block)
-      end
+      singleton_class(object).class_eval <<-CODE
+        def #{method}(options = {}, &block)
+          @configuration_dsl.configure(self, options, &block)
+        end
+      CODE
     end
 
     def define_storage(object)
-      singleton_class(object).send(:define_method, storage) do |&block|
-        @configuration_dsl.configuration.__bind(self)
-      end
+      singleton_class(object).class_eval <<-CODE
+        def #{storage}
+          @configuration_dsl.configuration.__bind(self)
+        end
+      CODE
     end
 
     def singleton_class(object)

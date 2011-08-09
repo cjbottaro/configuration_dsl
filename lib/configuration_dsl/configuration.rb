@@ -5,10 +5,10 @@ module ConfigurationDsl
   class Configuration
 
     def initialize(_module)
-      @module = _module
-      @actualizer = Object.new
-      @actualizer.extend(@module)
-      @specs = @module.instance_methods.inject({}) do |memo, name|
+      @module       = _module
+      @actualizer   = Object.new.tap{ |o| o.extend(@module) }
+      @object       = nil
+      @calls_map = @module.instance_methods.inject({}) do |memo, name|
         memo[name] = []
         memo
       end
@@ -16,13 +16,22 @@ module ConfigurationDsl
 
     def dup
       copy = Configuration.new(@module)
-      specs = @specs.inject({}) do |memo, (name, array)|
+      calls_map = @calls_map.inject({}) do |memo, (name, array)|
         memo[name] = array.collect{ |hash| hash.dup }
         memo
       end
-      specs.each{ |name, ar| ar.each{ |spec| spec[:evaled] = false } } # So derived classes can re-eval blocks.
-      copy.instance_variable_set("@specs", specs)
+      calls_map.each{ |name, ar| ar.each{ |call| call[:evaled] = false } } # So derived classes can re-eval blocks.
+      copy.instance_variable_set("@calls_map", calls_map)
       copy
+    end
+
+    def __actualize(name, call)
+      if call[:block]
+        args = @object.instance_eval(&call[:block])
+      else
+        args = call[:args]
+      end
+      @actualizer.send(name, *args)
     end
 
     def __bind(object)
@@ -31,31 +40,27 @@ module ConfigurationDsl
     end
 
     def __set(name, args, block)
-      @specs[name.to_sym] << { :block => block, :args => args, :evaled => false }
+      @calls_map[name.to_sym] << { :block => block, :args => args, :evaled => false }
     end
 
     def __eval(name)
-      specs = @specs[name]
+      calls = @calls_map[name]
 
       # Maybe it has a default value?
-      return @actualizer.send(name) if specs.empty?
+      return @actualizer.send(name) if calls.empty?
 
-      specs.each do |spec|
-        if not spec[:evaled]
-          if (block = spec[:block])
-            spec[:value] = @actualizer.send(name, @object.instance_eval(&block))
-          else
-            spec[:value] = @actualizer.send(name, *spec[:args])
-          end
-          spec[:evaled] = true
+      calls.each do |call|
+        if not call[:evaled]
+          call[:value] = __actualize(name, call)
+          call[:evaled] = true
         end
       end
 
-      specs.last[:value]
+      calls.last[:value]
     end
 
     def method_missing(name, *args, &block)
-      if @specs.has_key?(name)
+      if @calls_map.has_key?(name)
         __eval(name)
       else
         super
@@ -64,7 +69,7 @@ module ConfigurationDsl
 
     def inspect
       s = "#<ConfigurationDsl::Configuration:0x#{object_id}"
-      ar = @specs.keys.collect{ |name| "@#{name}=?" }
+      ar = @calls_map.keys.collect{ |name| "@#{name}=?" }
       s += " " + ar.join(", ") unless ar.empty?
       s += ">"
     end
