@@ -1,9 +1,10 @@
 0.3.0
+	- This version is not backwards compatible!  See the updated README.rdoc.
 	- Refactored again.
 	- Configurable #configure and #configuration methods.
 	- #configuration returns a Configuration object.
 	- Values in Configuration are lazily evaluated if defined as a block.
-	- Different symantics for module methods (not backwards compatible).
+	- Support for multiple configuration.
 
 0.2.1
 	- Freeze configuration after callback.

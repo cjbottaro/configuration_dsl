@@ -154,6 +154,47 @@ You can use different methods for #configure and #configuration.
   MyClass.settings.setting1 # => "blah"
   MyClass.settings.setting2 # => "bleh"
 
+== Multiple Configurations
+
++configuration_dsl+ supports multiple for configurations for a single object.
+
+  module PersonalConfig
+    def name(s)
+      s.to_s
+    end
+    def age(n)
+      n.to_i
+    end
+  end
+
+  module AccountsConfig
+    def twitter(name)
+      name.to_s
+    end
+    def email(email)
+      email.to_s
+    end
+  end
+
+  class MyClass
+    extend ConfigurationDsl
+    configure_with(PersonalConfig, :method => :configure_personal, :storage => :personal_configuration)
+    configure_with(AccountsConfig, :method => :configure_accounts, :storage => :accounts_configuration)
+    configure_personal do
+      name "Christopher"
+      age 31
+    end
+    configure_accounts do
+      twitter "cjbottaro"
+      email "cjbottaro@alumni.cs.utexas.edu"
+    end
+  end
+
+  MyClass.personal_configuration.name    # => "Christopher"
+  MyClass.personal_configuration.age     # => 31
+  MyClass.accounts_configuration.twitter # => "cjbottaro"
+  MyClass.accounts_configuration.email   # => "cjbottaro@alumni.cs.utexas.edu"
+
 == Contributing to configuration_dsl
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
