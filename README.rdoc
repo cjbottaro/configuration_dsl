@@ -59,7 +59,7 @@ Why are the configuration options stored in a module?  It makes for pretty docum
 
 == Default values, lazily evaluated values and modified values.
 
-Default values are supported in an intuative way.  If you specify a block for a value, then it is lazily evaluated when try to access the value for the first time.
+Default values are supported in an intuative way.  If you specify a block for a value, then it is lazily evaluated when you try to access the value for the first time.
 
   class MyClass
     extend ConfigurationDsl
@@ -156,7 +156,7 @@ You can use different methods for #configure and #configuration.
 
 == Multiple Configurations
 
-+configuration_dsl+ supports multiple for configurations for a single object.
++configuration_dsl+ supports multiple configurations for a single object.
 
   module PersonalConfig
     def name(s)
