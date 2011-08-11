@@ -56,12 +56,12 @@ describe ConfigurationDsl::Configuration do
     end
   end
 
-  context "calling #dup produces a copy" do
+  context "calling #__duplicate produces a copy" do
     before(:all) do
       subject.__set(:name, [], proc{ self.class.name })
       subject.__bind(Bar.new)
       subject.__eval(:name)
-      @copy = subject.dup
+      @copy = subject.__duplicate
       @copy.__bind(Bar)
     end
     it "that re-evaluates calls" do

@@ -8,7 +8,7 @@ end
 describe ConfigurationDsl::Dsl do
   context "initialized with a module and configuration" do
     subject do
-      ConfigurationDsl::Dsl.new(_module, ConfigurationDsl::Configuration.new(_module))
+      ConfigurationDsl::Dsl.new(ConfigurationDsl::Configuration.new(_module))
     end
     it "should respond to all the methods defined in that module" do
       subject.should respond_to(:foo)

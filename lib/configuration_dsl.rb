@@ -1,5 +1,4 @@
-require "configuration_dsl/dsl"
-require "configuration_dsl/impl"
+require "configuration_dsl/manager"
 
 module ConfigurationDsl
   
@@ -7,19 +6,26 @@ module ConfigurationDsl
   
   VERSION = File.read(File.dirname(__FILE__)+"/../VERSION").chomp
 
+  DEFAULT_OPTIONS = {
+    :method => :configure,
+    :storage => :configuration
+  }
+
   def configure_with(mod, options = {}, &block)
-    @configuration_dsl = Impl.new(mod, options, &block)
-    @configuration_dsl.define_method(self)    
-    @configuration_dsl.define_storage(self)
+    options = DEFAULT_OPTIONS.merge(options)
+    @configuration_dsl.configure_with(mod, options, &block)
   end
 
   def self.extended(object)
+    object.instance_eval do
+      @configuration_dsl = Manager.new(self)
+    end
+
     if object.instance_of?(Class)
       (class << object; self; end).class_eval do
         def inherited_with_configuration_dsl(derived)
-          if (configuration_dsl = instance_variable_get("@configuration_dsl"))
-            derived.instance_variable_set("@configuration_dsl", configuration_dsl.dup)
-          end
+          configuration_dsl = instance_variable_get("@configuration_dsl")
+          derived.instance_variable_set("@configuration_dsl", configuration_dsl.duplicate(derived))
           inherited_without_configuration_dsl(derived)
         end
         alias_method :inherited_without_configuration_dsl, :inherited

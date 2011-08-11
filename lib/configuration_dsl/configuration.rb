@@ -1,28 +1,45 @@
 module ConfigurationDsl
 
-  # Since we allow access to values via object-member notation, we prefix our own methods with __
-  # (double underscore) to avoid conflicts.
+  # Since we allow access to values via object-member notation, we prefix our
+  # own methods with __ (double underscore) to avoid potential conflicts.
   class Configuration
 
     def initialize(_module)
       @module       = _module
       @actualizer   = Object.new.tap{ |o| o.extend(@module) }
       @object       = nil
+      __clear_calls
+    end
+
+    def __duplicate
+      new_calls_map = @calls_map.inject({}) do |memo, (name, array)|
+        memo[name] = array.collect{ |hash| hash.dup }
+        memo
+      end
+      Configuration.new(@module).tap do |configuration|
+        configuration.instance_eval do
+          @calls_map = new_calls_map
+          __reset_calls
+        end
+      end
+    end
+
+    def __module
+      @module
+    end
+
+    # Reset all calls (:evaled => false), so that they are reevaluated
+    # the next time a configuration option is requested.
+    def __reset_calls
+      @calls_map.each{ |name, ar| ar.each{ |call| call[:evaled] = false } }
+    end
+
+    # Clear all the calls as if they were never made.
+    def __clear_calls
       @calls_map = @module.instance_methods.inject({}) do |memo, name|
         memo[name] = []
         memo
       end
-    end
-
-    def dup
-      copy = Configuration.new(@module)
-      calls_map = @calls_map.inject({}) do |memo, (name, array)|
-        memo[name] = array.collect{ |hash| hash.dup }
-        memo
-      end
-      calls_map.each{ |name, ar| ar.each{ |call| call[:evaled] = false } } # So derived classes can re-eval blocks.
-      copy.instance_variable_set("@calls_map", calls_map)
-      copy
     end
 
     def __actualize(name, call)
